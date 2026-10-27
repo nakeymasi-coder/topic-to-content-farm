@@ -173,7 +173,7 @@ hr.sep{border:none;border-top:2px solid var(--silver);margin:18px 0}
 <div class="card">
 <h2>Product Presentation - one choice, never both</h2>
 <div class="rule-box">
-<p style="margin-top:0">Every run picks <b>one single choice</b>, right after Mode: <b>Wearing the product</b> OR <b>Holding the product</b>. Never both.</p>
+<p style="margin-top:0">Runs with a product pick <b>one single choice</b>, right after Mode: <b>Wearing the product</b> OR <b>Holding the product</b>. Never both. No product? The run stays on <b>No product</b> and no wearing or holding line is added.</p>
 <p><b>Wearing run:</b> every prompt ends with this exact sentence: <b>"Wearing the product, not holding it."</b></p>
 <p><b>Holding run:</b> every prompt ends with this exact sentence: <b>"Holding the product, not wearing it."</b></p>
 <p>Never show her wearing an outfit while holding that same outfit on a hanger. Reject and regenerate any image that shows both. If a video needs both, use separate scenes - holding first, wearing later - never the same shot.</p>
@@ -252,8 +252,9 @@ hr.sep{border:none;border-top:2px solid var(--silver);margin:18px 0}
 
 <fieldset>
 <legend>4. Product Presentation - one single choice</legend>
-<p class="small" style="margin-top:0">Wearing the product OR Holding the product. Never both. This choice is saved on the run and shown on the Queue card and the Run in Chat card.</p>
+<p class="small" style="margin-top:0">Only for runs that have a product: Wearing the product OR Holding the product, never both. Just making an image? Leave it on No product - no wearing or holding line gets added. This choice is saved on the run and shown on the Queue card and the Run in Chat card.</p>
 <div class="pres-options">
+<label class="pres-opt"><input type="radio" name="in_pres" value="NoProduct" checked><span>No product - just an image<small>No wearing or holding line is added to the prompts.</small></span></label>
 <label class="pres-opt"><input type="radio" name="in_pres" value="Wearing"><span>Wearing the product<small>Every prompt ends: "Wearing the product, not holding it."</small></span></label>
 <label class="pres-opt"><input type="radio" name="in_pres" value="Holding"><span>Holding the product<small>Every prompt ends: "Holding the product, not wearing it."</small></span></label>
 </div>
@@ -441,7 +442,7 @@ function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e)
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function uid(){return "id"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function presSentence(p){if(p==="Wearing")return "Wearing the product, not holding it."; if(p==="Holding")return "Holding the product, not wearing it."; return "";}
-function presLabel(p){if(p==="Wearing")return "Wearing the product"; if(p==="Holding")return "Holding the product"; return "Not set";}
+function presLabel(p){if(p==="Wearing")return "Wearing the product"; if(p==="Holding")return "Holding the product"; if(p==="NoProduct")return "No product - just an image"; return "Not set";}
 function findChar(id){for(var i=0;i<state.characters.length;i++){if(state.characters[i].id===id)return state.characters[i];}return null;}
 function findCharByLetter(l){for(var i=0;i<state.characters.length;i++){if(state.characters[i].letter===l)return state.characters[i];}return null;}
 function charLabel(c){return c?("Character "+c.letter+" - "+c.name):"No character picked";}
@@ -682,6 +683,12 @@ return ["THE WORKFLOW - run this exactly:",
 "10. RETURN EVERYTHING IN CHAT for my approval. Never post, publish, or share anything."].join("\n");
 }
 function rulesText(p){
+if(p!=="Wearing"&&p!=="Holding"){return ["PRODUCT PRESENTATION - no product in this run:",
+"There is NO product in this run, so NO wearing or holding sentence is added to any prompt. Just make the image or scene as described.",
+"",
+"THE SCENE PROMPT SHAPE - use this for every scene, and nothing else about her:",
+"\"Use the reference images and keep the character perfectly consistent. [Scene action only.] [Spoken line, if any.]\"",
+"NEVER describe her in a scene prompt - no face, hair, skin, body, or outfit description. Describing her overrides the references and creates a different person."].join("\n");}
 return ["PRODUCT PRESENTATION - either/or, never both:",
 "Product Presentation choice: "+presLabel(p),
 "Exact prompt sentence: \""+presSentence(p)+"\"",
@@ -710,7 +717,7 @@ lines.push("Voice: "+((c&&c.voice)||run.voice||"-"));
 lines.push("Mode: "+(run.mode||"-"));
 lines.push("Platform: "+(run.platform||"-"));
 lines.push("Product Presentation: "+presLabel(run.presentation));
-lines.push("Exact prompt sentence: \""+presSentence(run.presentation)+"\"");
+if(presSentence(run.presentation)){lines.push("Exact prompt sentence: \""+presSentence(run.presentation)+"\"");}else{lines.push("No product in this run - no wearing or holding sentence is added to any prompt.");}
 lines.push("Prompt source: "+promptSourceLine(run));
 var ptext=promptSourceText(run);
 if(ptext){lines.push("Prompt from my Prompt Library - use this exact prompt:"); lines.push(ptext);}
@@ -785,7 +792,6 @@ var mode=document.getElementById("in_mode").value;
 var pres=document.querySelector('input[name="in_pres"]:checked');
 if(!topic){setMsg("intakeMsg","Type the TOPIC first (field 1) - the whole run is built on it.",false);return;}
 if(!mode){setMsg("intakeMsg","Pick a mode (field 3).",false);return;}
-if(!pres){setMsg("intakeMsg","Pick ONE Product Presentation choice (field 4): Wearing the product OR Holding the product.",false);return;}
 if(charVal==="__new__"){setMsg("intakeMsg","You picked create a new character. Add her in the Character Vault first, then pick her here.",false); showPage("vault"); return;}
 var c=(charVal&&charVal!=="__none__")?findChar(charVal):null;
 var srcVal=document.getElementById("in_promptSource").value;
@@ -806,6 +812,7 @@ h+='<div class="msg solo-msg"></div>';
 h+='<label class="field">Locked character<select class="char-select solo-character"></select></label>';
 h+='<label class="field">Mode<select class="mode-select solo-mode"></select></label>';
 h+='<fieldset><legend>Product Presentation - one single choice'+(needPres?" (required for this agent)":"")+'</legend><div class="pres-options">';
+h+='<label class="pres-opt"><input type="radio" name="solo_pres_'+a.id+'" value="NoProduct" checked><span>No product - just an image<small>No wearing or holding line is added to the prompts.</small></span></label>';
 h+='<label class="pres-opt"><input type="radio" name="solo_pres_'+a.id+'" value="Wearing"><span>Wearing the product<small>Every prompt ends: "Wearing the product, not holding it."</small></span></label>';
 h+='<label class="pres-opt"><input type="radio" name="solo_pres_'+a.id+'" value="Holding"><span>Holding the product<small>Every prompt ends: "Holding the product, not wearing it."</small></span></label>';
 h+='</div></fieldset>';
@@ -842,10 +849,9 @@ var agent=null; AGENTS.forEach(function(a){if(a.id===aid)agent=a;});
 var msg=form.querySelector(".solo-msg");
 var mode=form.querySelector(".solo-mode").value;
 var presEl=form.querySelector('input[name="solo_pres_'+aid+'"]:checked');
-var pres=presEl?presEl.value:"";
+var pres=presEl?presEl.value:"NoProduct";
 function fail(t){msg.textContent=t; msg.className="msg err solo-msg"; msg.style.display="block";}
 if(!mode){fail("Pick a mode first.");return;}
-if((aid===3||aid===4)&&!pres){fail("Pick ONE Product Presentation choice: Wearing the product OR Holding the product.");return;}
 var charVal=form.querySelector(".solo-character").value;
 if(charVal==="__new__"){fail("You picked create a new character. Add her in the Character Vault first, then pick her here."); showPage("vault"); return;}
 var c=(charVal&&charVal!=="__none__")?findChar(charVal):null;
@@ -881,7 +887,7 @@ html+='<p class="kv"><b>Mode:</b> '+esc(run.mode||"-")+'</p>';
 html+='<p class="kv"><b>Platform:</b> '+esc(run.platform||"-")+'</p>';
 if(run.presentation){
 html+='<p class="kv"><b>Product Presentation:</b> <span class="pill pres">'+esc(presLabel(run.presentation))+'</span></p>';
-html+='<p class="kv"><b>Exact prompt sentence:</b> "'+esc(presSentence(run.presentation))+'"</p>';
+if(presSentence(run.presentation)){html+='<p class="kv"><b>Exact prompt sentence:</b> "'+esc(presSentence(run.presentation))+'"</p>';}
 }else{
 html+='<p class="kv"><b>Product Presentation:</b> Not set for this solo job</p>';
 }
@@ -936,7 +942,7 @@ html+='<p class="kv"><b>Mode:</b> '+esc(run.mode||"-")+'</p>';
 html+='<p class="kv"><b>Platform:</b> '+esc(run.platform||"-")+'</p>';
 if(run.presentation){
 html+='<p class="kv"><b>Product Presentation:</b> <span class="pill pres">'+esc(presLabel(run.presentation))+'</span></p>';
-html+='<p class="kv"><b>Exact prompt sentence:</b> "'+esc(presSentence(run.presentation))+'"</p>';
+if(presSentence(run.presentation)){html+='<p class="kv"><b>Exact prompt sentence:</b> "'+esc(presSentence(run.presentation))+'"</p>';}
 }else{html+='<p class="kv"><b>Product Presentation:</b> Not set for this solo job</p>';}
 html+='<p class="kv"><b>Prompt source:</b> '+esc(promptSourceLine(run))+'</p>';
 var ptext=promptSourceText(run);
